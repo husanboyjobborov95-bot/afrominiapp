@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ESPAN 1</title>
+<style>
+  :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;--accent:#0b63d7}
+  body{margin:0;padding:0;background:#f7f7fb;color:#111;display:flex;flex-direction:column;min-height:100vh}
+  header{background:white;padding:16px;border-bottom:1px solid #e6e6ee;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:18px;margin:0}
+  main{flex:1;padding:18px;max-width:900px;margin:0 auto;width:100%}
+  .card{background:white;border-radius:12px;padding:20px;box-shadow:0 6px 20px rgba(12,12,50,0.06);margin-bottom:14px}
+  .word{font-size:34px;font-weight:800}
+  .pron{font-size:18px;color:#666;margin-top:6px}
+  .trans{font-size:18px;color:#333;margin-top:8px}
+  .example{margin-top:12px;color:#555}
+  .controls{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  button{padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:white;font-weight:700;cursor:pointer}
+  .secondary{background:#eee;color:#111}
+  .small{font-size:13px;color:#666}
+  footer{padding:12px;text-align:center;font-size:13px;color:#666}
+  .progressBar{height:10px;background:#e6e6ee;border-radius:8px;overflow:hidden;margin-top:10px}
+  .progressFill{height:100%;width:0;background:linear-gradient(90deg,#0b63d7,#2aa7ff)}
+</style>
+</head>
+<body>
+<header>
+  <h1>ESPAN 1</h1>
+  <div class="small">40 so'z — kartochkali o‘rganish</div>
+</header>
+
+<main>
+  <div class="card" id="card">
+    <div class="word" id="wordText">Yuklanmoqda...</div>
+    <div class="pron" id="wordPron"></div>
+    <div class="trans" id="wordTrans"></div>
+    <div class="example" id="wordExample"></div>
+
+    <div class="controls">
+      <button id="prevBtn" class="secondary">◀ Avvalgi</button>
+      <button id="speakBtn">Talaffuz 🔊</button>
+      <button id="markBtn">Yodladim ✅</button>
+      <button id="resetBtn" class="secondary">Progressni tozalash</button>
+    </div>
+
+    <div class="progressBar" aria-hidden="true">
+      <div class="progressFill" id="progressFill"></div>
+    </div>
+    <div class="small" id="progressText" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card small" id="infoCard">
+    <div id="statsText">Yuklanmoqda...</div>
+    <div style="margin-top:8px" class="small">Safari’da ochib “Share → Add to Home Screen” qilsang, app kabi ishlaydi.</div>
+  </div>
+</main>
+
+<footer>
+  ESPAN 1 — talaffuz ovoz yordamida (SpeechSynthesis). Brauzer talaffuzni qo‘llashi kerak.
+</footer>
+
+<script>
+// 40 words: esp, pron (uzbekcha talaffuz), uz translation, example (uz)
+const words = [
+{esp:"hola", pron:"ola", uz:"salom", example:"Hola. (Salom.)"},
+{esp:"gracias", pron:"grasias", uz:"rahmat", example:"Gracias por todo. (Hamma uchun rahmat.)"},
+{esp:"por favor", pron:"por favor", uz:"iltimos", example:"Pásame eso, por favor. (Iltimos, shuni ber.)"},
+{esp:"sí", pron:"si", uz:"ha", example:"Sí, quiero. (Ha, xohlayman.)"},
+{esp:"no", pron:"no", uz:"yo'q", example:"No puedo. (Qila olmayman.)"},
+{esp:"adiós", pron:"adios", uz:"xayr", example:"Adiós, hasta luego. (Xayr, ko‘rishguncha.)"},
+{esp:"perdón", pron:"perdon", uz:"kechirasiz", example:"Perdón por llegar tarde. (Kech qolganim uchun kechirasiz.)"},
+{esp:"buenos días", pron:"bwenos dias", uz:"hayrli tong", example:"¡Buenos días! (Hayrli tong!)"},
+{esp:"buenas noches", pron:"bwenas noches", uz:"hayrli kech", example:"Buenas noches y duerme bien. (Hayrli kech va yaxshi uxla.)"},
+{esp:"amigo", pron:"amigo", uz:"do‘st", example:"Mi amigo vive aquí. (Mening do‘stim shu yerda yashaydi.)"},
+{esp:"familia", pron:"familia", uz:"oila", example:"Tengo una familia grande. (Menga katta oila bor.)"},
+{esp:"casa", pron:"kasa", uz:"uy", example:"La casa es azul. (Uy ko‘k rangda.)"},
+{esp:"comida", pron:"komida", uz:"taom", example:"Me gusta la comida. (Mengga taom yoqadi.)"},
+{esp:"agua", pron:"agua", uz:"suv", example:"Necesito agua. (Menga suv kerak.)"},
+{esp:"trabajo", pron:"trabaxo", uz:"ish", example:"Hoy tengo trabajo. (Bugun ish bor.)"},
+{esp:"escuela", pron:"eskela", uz:"maktab", example:"La escuela está cerca. (Maktab yaqin.)"},
+{esp:"libro", pron:"libro", uz:"kitob", example:"Leo un libro. (Men kitob o‘qiyman.)"},
+{esp:"tiempo", pron:"tiempo", uz:"vaqt/ob-havo", example:"¿Qué tiempo hace? (Ob-havo qanday?)"},
+{esp:"ayer", pron:"ayer", uz:"kecha", example:"Ayer fui al cine. (Kecha kinoga bordim.)"},
+{esp:"hoy", pron:"oy", uz:"bugun", example:"Hoy estoy ocupado. (Bugun bandman.)"},
+{esp:"mañana", pron:"manana", uz:"ertaga/ertalab", example:"Mañana estudiaré. (Ertaga o‘rganaman.)"},
+{esp:"comer", pron:"komer", uz:"yemoq", example:"Voy a comer. (Men yeyishga ketaman.)"},
+{esp:"beber", pron:"beber", uz:"ichmoq", example:"Quiero beber. (Ichmoqchiman.)"},
+{esp:"ir", pron:"ir", uz:"bormoq", example:"Voy al mercado. (Bozorga boraman.)"},
+{esp:"ver", pron:"ber", uz:"ko‘rmoq", example:"Quiero ver la película. (Kino ko‘rmoqchiman.)"},
+{esp:"hablar", pron:"ablar", uz:"gapirmoq", example:"Necesito hablar. (Gaplashishim kerak.)"},
+{esp:"escuchar", pron:"eskuchar", uz:"tinglamoq", example:"Escucho música. (Musiqa tinglayman.)"},
+{esp:"nuevo", pron:"nuebo", uz:"yangi", example:"Tengo un coche nuevo. (Menda yangi mashina bor.)"},
+{esp:"viejo", pron:"vyeho", uz:"eski", example:"Este libro es viejo. (Bu kitob eski.)"},
+{esp:"grande", pron:"grande", uz:"katta", example:"La casa es grande. (Uy katta.)"},
+{esp:"pequeño", pron:"pekenyo", uz:"kichik", example:"El perro es pequeño. (It kichik.)"},
+{esp:"bueno", pron:"bueno", uz:"yaxshi", example:"Es un buen día. (Bugun yaxshi kun.)"},
+{esp:"malo", pron:"malo", uz:"yomon", example:"Fue malo. (Bu yomon bo‘ldi.)"},
+{esp:"rápido", pron:"rapido", uz:"tez", example:"Corre rápido. (U tez yuguradi.)"},
+{esp:"lento", pron:"lento", uz:"sekin", example:"Habla lento. (Sekin gapir.)"},
+{esp:"ahora", pron:"ahora", uz:"hozir", example:"Hazlo ahora. (Hozir qil.)"},
+{esp:"siempre", pron:"siempre", uz:"har doim", example:"Siempre te ayudo. (Har doim yordam beraman.)"}
+];
+
+let current = Number(localStorage.getItem('espan1_current')) || 0;
+let learned = JSON.parse(localStorage.getItem('espan1_learned') || '[]');
+
+function render(){
+  const w = words[current];
+  document.getElementById('wordText').textContent = w.esp;
+  document.getElementById('wordPron').textContent = '('+w.pron+')';
+  document.getElementById('wordTrans').textContent = w.uz;
+  document.getElementById('wordExample').textContent = w.example;
+  document.getElementById('markBtn').textContent = learned.includes(w.esp) ? 'O‘rganilgan ✅' : 'Yodladim ✅';
+  updateProgress();
+  saveState();
+}
+
+function updateProgress(){
+  const percent = Math.round((learned.length / words.length) * 100);
+  document.getElementById('progressFill').style.width = percent + '%';
+  document.getElementById('progressText').textContent = `Umumiy: ${learned.length} / ${words.length} so‘z o‘rganildi (${percent}%). Hozirgi: ${current+1}/${words.length}`;
+  document.getElementById('statsText').textContent = 'Hozirgi dars: ESPAN 1 — Kartochkali o‘rganish';
+}
+
+function speak(){
+  const w = words[current];
+  if('speechSynthesis' in window){
+    const utter = new SpeechSynthesisUtterance(w.esp);
+    const voices = speechSynthesis.getVoices();
+    // prefer Spanish voice
+    const sp = voices.find(v=>/es(-|_)?/i.test(v.lang)) || voices.find(v=>/spanish/i.test(v.name));
+    if(sp) utter.voice = sp;
+    utter.rate = 0.95;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  } else {
+    alert('Brauzering talaffuzni qo‘llamaydi.');
+  }
+}
+
+function markLearned(){
+  const w = words[current];
+  if(!learned.includes(w.esp)) learned.push(w.esp);
+  saveState();
+  // auto next if not last
+  if(current < words.length - 1){
+    current++;
+  } else {
+    alert('Tabriklayman! Bu bosqich tugadi. Hammasini yodladingiz yoki oxirgi so‘zga yetdingiz.');
+  }
+  render();
+}
+
+function prev(){
+  if(current > 0) current--;
+  render();
+}
+
+function resetAll(){
+  if(!confirm('Progressni tozalashni xohlaysizmi?')) return;
+  learned = [];
+  current = 0;
+  saveState();
+  render();
+}
+
+function saveState(){
+  localStorage.setItem('espan1_current', current.toString());
+  localStorage.setItem('espan1_learned', JSON.stringify(learned));
+}
+
+document.getElementById('speakBtn').addEventListener('click', speak);
+document.getElementById('markBtn').addEventListener('click', markLearned);
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+window.addEventListener('load', ()=>{
+  // ensure voices loaded
+  if(typeof speechSynthesis !== 'undefined'){
+    speechSynthesis.onvoiceschanged = ()=>{};
+  }
+  render();
+});
+</script>
+</body>
+</html>
